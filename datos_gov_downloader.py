@@ -12,14 +12,12 @@ from urllib.parse import urljoin
 
 
 def descargar_html_primer_resultado():
-    print("🚀 Iniciando flujo: Inicio ➜ Descubre ➜ 1er resultado ➜ TEXT/HTML")
+    print("Iniciando flujo: Inicio ➜ Descubre ➜ 1er resultado ➜ TEXT/HTML")
 
-    # Configuración de Chrome
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--disable-popup-blocking")
-    # Agregar headers para evitar bloqueos
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),
@@ -27,12 +25,10 @@ def descargar_html_primer_resultado():
     wait = WebDriverWait(driver, 20)
 
     try:
-        # 1) Página principal
         driver.get("https://www.datos.gov.co/")
         wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
         print("✅ Página principal cargada")
 
-        # 2) Clic en 'Descubre'
         try:
             btn_descubre = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Descubre")))
         except:
@@ -42,7 +38,6 @@ def descargar_html_primer_resultado():
         btn_descubre.click()
         print("✅ Click en 'Descubre'")
 
-        # 3) Primer resultado
         primer_link = wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, "a.entry-name-link[data-testid='view-card-entry-link']")
         ))
@@ -50,11 +45,10 @@ def descargar_html_primer_resultado():
         time.sleep(0.5)
         dataset_url = primer_link.get_attribute("href")
         dataset_title = primer_link.text.strip()
-        print(f"🔗 Primer dataset: {dataset_title}")
-        print(f"🔗 URL: {dataset_url}")
+        print(f"Primer dataset: {dataset_title}")
+        print(f"URL: {dataset_url}")
         driver.execute_script("arguments[0].click();", primer_link)
 
-        # 4) Asegurar que estamos en /about_data
         wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
         time.sleep(2)
         curr = driver.current_url
@@ -66,10 +60,8 @@ def descargar_html_primer_resultado():
             time.sleep(2)
         print(f"📄 Página de 'Acerca de estos datos': {driver.current_url}")
 
-        # 5) Buscar enlace de descarga - Múltiples estrategias
         enlace_descarga = None
         
-        # Estrategia 1: Buscar enlace directo con texto específico
         try:
             enlace_descarga = wait.until(EC.presence_of_element_located(
                 (By.CSS_SELECTOR, "a[href*='download-file-link']")
@@ -78,7 +70,6 @@ def descargar_html_primer_resultado():
         except:
             pass
         
-        # Estrategia 2: Buscar por clase específica que veo en la imagen
         if not enlace_descarga:
             try:
                 enlace_descarga = driver.find_element(By.CSS_SELECTOR, "a.download-file-link.all-caps")
@@ -86,7 +77,6 @@ def descargar_html_primer_resultado():
             except:
                 pass
         
-        # Estrategia 3: Buscar dentro de forge-button usando shadow DOM
         if not enlace_descarga:
             try:
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.download-buttons")))
@@ -106,7 +96,6 @@ def descargar_html_primer_resultado():
             except:
                 pass
         
-        # Estrategia 4: Buscar cualquier enlace que contenga palabras clave de descarga
         if not enlace_descarga:
             try:
                 posibles_enlaces = driver.find_elements(By.TAG_NAME, "a")
@@ -127,8 +116,6 @@ def descargar_html_primer_resultado():
         href = enlace_descarga.get_attribute("href")
         print(f"✅ Enlace de descarga encontrado: {href}")
 
-        # 6) Descargar archivo con requests
-        # Asegurar que tenemos una URL completa
         if href.startswith('//'):
             href = 'https:' + href
         elif href.startswith('/'):
@@ -136,7 +123,6 @@ def descargar_html_primer_resultado():
         
         print(f"📥 Descargando desde: {href}")
         
-        # Headers para simular navegador real
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -152,7 +138,6 @@ def descargar_html_primer_resultado():
             download_dir = os.path.join(os.getcwd(), "datasets")
             os.makedirs(download_dir, exist_ok=True)
             
-            # Determinar extensión basada en Content-Type
             content_type = resp.headers.get('content-type', '').lower()
             if 'html' in content_type:
                 extension = '.html'
@@ -163,7 +148,7 @@ def descargar_html_primer_resultado():
             elif 'xml' in content_type:
                 extension = '.xml'
             else:
-                # Intentar determinar por la URL o usar .html como default
+
                 if '.csv' in href:
                     extension = '.csv'
                 elif '.json' in href:
@@ -173,7 +158,6 @@ def descargar_html_primer_resultado():
                 else:
                     extension = '.html'
             
-            # Crear nombre de archivo limpio
             filename = dataset_title.replace(' ', '_').replace('/', '_')[:50] + extension
             out_path = os.path.join(download_dir, filename)
             
