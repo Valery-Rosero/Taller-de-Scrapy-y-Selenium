@@ -16,7 +16,6 @@ class PopulationSpider(scrapy.Spider):
     start_urls = ['https://www.worldometers.info/world-population/world-population-by-year/']
 
     def parse(self, response):
-        # Extraer datos de la tabla
         rows = response.xpath('//table[@id="example2"]/tbody/tr')
         
         for row in rows:
@@ -32,5 +31,4 @@ class PopulationSpider(scrapy.Spider):
             yield item
 
     def closed(self, reason):
-        # Esto asegura que el archivo se cierre correctamente
         self.logger.info('Spider closed: %s', reason)
