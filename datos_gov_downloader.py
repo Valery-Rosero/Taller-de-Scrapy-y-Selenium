@@ -10,25 +10,19 @@ import os
 import glob
 
 def descargar_dataset_datos_gov():
-    """
-    Automatiza la descarga de un dataset desde datos.gov.co
-    Flujo: DESCUBRE -> Primer dataset -> Descargar CSV
-    """
+
     print("🚀 Iniciando automatización de datos.gov.co...")
     
-    # Configurar opciones de Chrome
     chrome_options = Options()
     chrome_options.add_argument('--start-maximized')
     chrome_options.add_argument('--disable-notifications')
     chrome_options.add_argument('--disable-popup-blocking')
-    
-    # ✅ Carpeta donde se guardarán los datasets
+
     download_path = os.path.join(os.getcwd(), 'datasets')
     if not os.path.exists(download_path):
         os.makedirs(download_path)
         print(f"📁 Carpeta creada: {download_path}")
     
-    # Configuración de descargas automáticas
     prefs = {
         "download.default_directory": download_path,
         "download.prompt_for_download": False,
@@ -40,27 +34,22 @@ def descargar_dataset_datos_gov():
     
     driver = None
     try:
-        # Inicializar navegador
         print("🌐 Inicializando navegador Chrome...")
         driver = webdriver.Chrome(
             service=Service(ChromeDriverManager().install()),
             options=chrome_options
         )
         
-        # Navegar a datos.gov.co
         print("🌐 Accediendo a https://www.datos.gov.co/ ...")
         driver.get('https://www.datos.gov.co/')
         
-        # Esperar carga de la página
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         print("✅ Página cargada correctamente")
         
-        # 1. Click en DESCUBRE - MÚLTIPLES OPCIONES por si cambia el texto
         print("👉 Buscando sección 'DESCUBRE'...")
         
-        # Intentar diferentes formas de encontrar el botón DESCUBRE
         selectores_descubre = [
             "//a[contains(text(), 'DESCUBRE')]",
             "//button[contains(text(), 'DESCUBRE')]",
@@ -85,16 +74,13 @@ def descargar_dataset_datos_gov():
         
         if not descubre_encontrado:
             print("⚠️ No se encontró DESCUBRE, intentando con búsqueda directa...")
-            # Si no encuentra DESCUBRE, ir directamente a datasets
             driver.get('https://www.datos.gov.co/browse')
         
-        # 2. Esperar a que carguen los datasets
         print("⏳ Esperando que carguen los datasets...")
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/dataset/'], .dataset-item, .asset-card"))
         )
         
-        # 3. Seleccionar primer dataset - MÚLTIPLES SELECTORES
         print("📋 Seleccionando el primer dataset...")
         
         selectores_dataset = [
@@ -123,20 +109,16 @@ def descargar_dataset_datos_gov():
             print("❌ No se pudo encontrar ningún dataset")
             return
         
-        # 4. Esperar a que cargue la página del dataset
         print("⏳ Cargando página del dataset...")
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".resource-item, .download-button, [data-format]"))
         )
         
-        # 5. Buscar específicamente el botón "TEXT/CSV" - COMO PIDES
         print("🔎 Buscando botón TEXT/CSV...")
         
-        # Buscar específicamente TEXT/CSV
         botones_csv = driver.find_elements(By.XPATH, "//*[contains(text(), 'TEXT/CSV') or contains(text(), 'CSV')]")
         
         if not botones_csv:
-            # Buscar en recursos
             recursos = driver.find_elements(By.CSS_SELECTOR, ".resource-item, [data-format]")
             for recurso in recursos:
                 texto = recurso.text.upper()
@@ -155,25 +137,21 @@ def descargar_dataset_datos_gov():
         
         if not descargado:
             print("⚠️ No se encontró TEXT/CSV, buscando cualquier CSV...")
-            # Plan B: buscar cualquier enlace CSV
             enlaces_csv = driver.find_elements(By.XPATH, "//a[contains(@href, '.csv') or contains(@href, 'format=csv')]")
             if enlaces_csv:
                 enlaces_csv[0].click()
                 descargado = True
         
-        # Esperar la descarga
         if descargado:
             print("⏳ Esperando que se complete la descarga...")
-            time.sleep(15)  # Más tiempo para descarga
+            time.sleep(15)
             
-            # Verificar descarga
             archivos_descargados = glob.glob(os.path.join(download_path, '*'))
             if archivos_descargados:
                 archivo_mas_reciente = max(archivos_descargados, key=os.path.getctime)
                 print(f"✅ Descarga completada: {os.path.basename(archivo_mas_reciente)}")
                 print(f"📂 Guardado en: {archivo_mas_reciente}")
                 
-                # Mostrar info del archivo
                 tamaño = os.path.getsize(archivo_mas_reciente)
                 print(f"📊 Tamaño: {tamaño} bytes")
             else:
