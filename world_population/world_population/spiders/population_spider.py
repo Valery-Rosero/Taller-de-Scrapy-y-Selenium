@@ -1,34 +1,22 @@
 import scrapy
-from scrapy.exporters import CsvItemExporter
-
-class PopulationItem(scrapy.Item):
-    year = scrapy.Field()
-    population = scrapy.Field()
-    yearly_change = scrapy.Field()
-    net_change = scrapy.Field()
-    density = scrapy.Field()
-    urban_pop = scrapy.Field()
-    world_share = scrapy.Field()
 
 class PopulationSpider(scrapy.Spider):
-    name = 'population_spider'
-    allowed_domains = ['worldometers.info']
-    start_urls = ['https://www.worldometers.info/world-population/world-population-by-year/']
+    name = "population_spider"
+    start_urls = ["https://www.worldometers.info/world-population/world-population-by-year/"]
+
+    def start_requests(self):
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36",
+            "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+        }
+        for url in self.start_urls:
+            yield scrapy.Request(url, headers=headers, callback=self.parse)
 
     def parse(self, response):
-        rows = response.xpath('//table[@id="example2"]/tbody/tr')
-        
-        for row in rows:
-            item = PopulationItem()
-            item['year'] = row.xpath('.//td[1]/text()').get()
-            item['population'] = row.xpath('.//td[2]/text()').get()
-            item['yearly_change'] = row.xpath('.//td[3]/text()').get()
-            item['net_change'] = row.xpath('.//td[4]/text()').get()
-            item['density'] = row.xpath('.//td[5]/text()').get()
-            item['urban_pop'] = row.xpath('.//td[6]/text()').get()
-            item['world_share'] = row.xpath('.//td[7]/text()').get()
-            
-            yield item
-
-    def closed(self, reason):
-        self.logger.info('Spider closed: %s', reason)
+        for fila in response.css("table tbody tr"):
+            yield {
+                "year": fila.css("td:nth-child(1)::text").get(),
+                "population": fila.css("td:nth-child(2)::text").get(),
+                "yearly_change": fila.css("td:nth-child(3)::text").get(),
+                "net_change": fila.css("td:nth-child(4)::text").get(),
+            }
